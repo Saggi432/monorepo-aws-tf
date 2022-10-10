@@ -1,0 +1,72 @@
+.tags_template:
+  tags_runner: &tags_runner
+    - k8s
+
+
+.initial_account_setup:
+  script: &initial_account_setup
+    - export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+    - export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY 
+    - export AWS_SESSION_TOKEN=$AWS_SESSION_TOKEN
+    - aws sts get-caller-identity
+
+
+.tf_test_template:
+  script: &tf_test_template
+    - cd $TF_ENV_PATH
+    - terraform init
+    - terraform fmt -recursive -diff
+    - terraform validate
+    - terraform plan -out=tf-plan-${CI_COMMIT_SHORT_SHA}
+  artifacts: &tf_artifacts_template
+    name: "tf-plan-$CI_COMMIT_REF_NAME"
+    paths:
+      - ${TF_ENV_PATH}/tf-plan-${CI_COMMIT_SHORT_SHA}
+
+.tf_deploy_template:
+  script: &tf_deploy_template
+    - terraform version
+    - cd $TF_ENV_PATH
+    - terraform init
+    - terraform validate
+    - terraform apply -auto-approve tf-plan-${CI_COMMIT_SHORT_SHA}
+
+
+##############################
+##  Terraform Plan/Fmt
+# TODO: More Comments
+##############################
+
+
+.tf_test:
+  image: registry.gitlab.com
+  stage: test
+  tags: *tags_runner
+  script: 
+    - *initial_account_setup
+    - *tf_test_template
+  rules:
+    - if: $CI_COMMIT_REF_NAME == "main" || $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - aws/${PROJECT_FOLDER}/**/*
+    
+
+
+##############################
+## Terraform Apply 
+# TODO: More Comments
+##############################
+
+.tf_deploy:
+  image: registry.gitlab.com
+  stage: deploy
+  tags: *tags_runner
+  script:
+    - *initial_account_setup
+    - *tf_deploy_template
+  rules:
+    - if: '$CI_COMMIT_REF_NAME == "main"'
+      changes:
+        - aws/${PROJECT_FOLDER}/**/*
+      when: manual
+

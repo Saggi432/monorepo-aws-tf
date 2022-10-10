@@ -1,0 +1,21 @@
+# Override the basic template for test and deployment with the custom account details
+# more changes needed as well for other variables.
+
+include: '/.gitlab/tf-test-deployment.yml'
+
+sample-account-test:
+  extends: .tf_test
+  variables:
+    TF_ENV_PATH: aws/sampleaccount
+    PROJECT_FOLDER: sampleaccount
+    AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
+    AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY
+    AWS_SESSION_TOKEN: $AWS_SESSION_TOKEN
+
+
+sample-account-deploy:
+  extends: .tf_deploy
+  variables:
+    TF_ENV_PATH: aws/sampleaccount
+    PROJECT_FOLDER: sampleaccount
+
